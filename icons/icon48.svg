@@ -1,0 +1,27 @@
+<svg width="48" height="48" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:#4A90E2;stop-opacity:1" />
+        <stop offset="100%" style="stop-color:#357ABD;stop-opacity:1" />
+      </linearGradient>
+    </defs>
+    <!-- Background circle -->
+    <circle cx="24" cy="24" r="20" fill="url(#grad1)" stroke="#2C5AA0" stroke-width="2"/>
+    <!-- Robot head -->
+    <rect x="12" y="9.600000000000001" width="24" height="19.200000000000003" rx="2.4000000000000004" fill="#FFFFFF" opacity="0.9"/>
+    <!-- Robot eyes -->
+    <circle cx="16.799999999999997" cy="14.399999999999999" r="1.44" fill="#4A90E2"/>
+    <circle cx="31.200000000000003" cy="14.399999999999999" r="1.44" fill="#4A90E2"/>
+    <!-- Robot mouth -->
+    <rect x="19.200000000000003" y="21.6" width="9.600000000000001" height="0.96" rx="0.48" fill="#4A90E2"/>
+    <!-- Web elements -->
+    <circle cx="7.199999999999999" cy="7.199999999999999" r="3.84" fill="#FFFFFF" opacity="0.7"/>
+    <circle cx="40.8" cy="12" r="2.88" fill="#FFFFFF" opacity="0.7"/>
+    <circle cx="9.600000000000001" cy="38.400000000000006" r="2.4000000000000004" fill="#FFFFFF" opacity="0.7"/>
+    <circle cx="38.400000000000006" cy="40.8" r="3.3600000000000003" fill="#FFFFFF" opacity="0.7"/>
+    <!-- Connection lines -->
+    <line x1="7.199999999999999" y1="7.199999999999999" x2="12" y2="9.600000000000001" stroke="#FFFFFF" stroke-width="1" opacity="0.5"/>
+    <line x1="40.8" y1="12" x2="36" y2="9.600000000000001" stroke="#FFFFFF" stroke-width="1" opacity="0.5"/>
+    <line x1="9.600000000000001" y1="38.400000000000006" x2="12" y2="28.799999999999997" stroke="#FFFFFF" stroke-width="1" opacity="0.5"/>
+    <line x1="38.400000000000006" y1="40.8" x2="36" y2="28.799999999999997" stroke="#FFFFFF" stroke-width="1" opacity="0.5"/>
+  </svg>

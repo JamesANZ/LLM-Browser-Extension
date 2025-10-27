@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LLM Webpage Modifier</title>
+    <style>
+      body {
+        width: 400px;
+        min-height: 500px;
+        margin: 0;
+        padding: 0;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: #f8f9fa;
+      }
+
+      .header {
+        background: linear-gradient(135deg, #007bff, #0056b3);
+        color: white;
+        padding: 20px;
+        text-align: center;
+      }
+
+      .header h1 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+      }
+
+      .container {
+        padding: 20px;
+      }
+
+      .section {
+        margin-bottom: 20px;
+      }
+
+      .section h3 {
+        margin: 0 0 10px 0;
+        color: #333;
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      .form-group {
+        margin-bottom: 15px;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-size: 12px;
+        color: #666;
+        font-weight: 500;
+      }
+
+      .form-group input,
+      .form-group select,
+      .form-group textarea {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+        box-sizing: border-box;
+      }
+
+      .form-group textarea {
+        resize: vertical;
+        min-height: 80px;
+      }
+
+      .form-group input:focus,
+      .form-group select:focus,
+      .form-group textarea:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+      }
+
+      .btn {
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: background-color 0.2s;
+        width: 100%;
+      }
+
+      .btn:hover {
+        background: #0056b3;
+      }
+
+      .btn:disabled {
+        background: #6c757d;
+        cursor: not-allowed;
+      }
+
+      .btn-secondary {
+        background: #6c757d;
+      }
+
+      .btn-secondary:hover {
+        background: #545b62;
+      }
+
+      .status {
+        padding: 10px;
+        border-radius: 4px;
+        margin-bottom: 15px;
+        font-size: 12px;
+      }
+
+      .status.success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+      }
+
+      .status.error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+      }
+
+      .status.info {
+        background: #d1ecf1;
+        color: #0c5460;
+        border: 1px solid #bee5eb;
+      }
+
+      .loading {
+        display: none;
+        text-align: center;
+        padding: 20px;
+      }
+
+      .spinner {
+        border: 2px solid #f3f3f3;
+        border-top: 2px solid #007bff;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 10px;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .tabs {
+        display: flex;
+        margin-bottom: 20px;
+        border-bottom: 1px solid #ddd;
+      }
+
+      .tab {
+        flex: 1;
+        padding: 10px;
+        text-align: center;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        font-size: 12px;
+        font-weight: 500;
+      }
+
+      .tab.active {
+        border-bottom-color: #007bff;
+        color: #007bff;
+      }
+
+      .tab-content {
+        display: none;
+      }
+
+      .tab-content.active {
+        display: block;
+      }
+
+      .quick-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-bottom: 15px;
+      }
+
+      .quick-btn {
+        background: #e9ecef;
+        color: #495057;
+        border: 1px solid #ced4da;
+        padding: 8px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        text-align: center;
+      }
+
+      .quick-btn:hover {
+        background: #dee2e6;
+      }
+
+      .selected-text {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        padding: 10px;
+        border-radius: 4px;
+        margin-bottom: 15px;
+        font-size: 12px;
+      }
+
+      .selected-text strong {
+        color: #856404;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>🤖 LLM Webpage Modifier</h1>
+    </div>
+
+    <div class="container">
+      <div class="tabs">
+        <div class="tab active" data-tab="main">Main</div>
+        <div class="tab" data-tab="settings">Settings</div>
+      </div>
+
+      <!-- Main Tab -->
+      <div class="tab-content active" id="main-tab">
+        <div id="status-container"></div>
+
+        <div
+          id="selected-text-container"
+          class="selected-text"
+          style="display: none"
+        >
+          <strong>Selected Text:</strong>
+          <div id="selected-text-content"></div>
+        </div>
+
+        <div class="section">
+          <h3>Quick Actions</h3>
+          <div class="quick-actions">
+            <button class="quick-btn" data-action="change-color">
+              Change Color
+            </button>
+            <button class="quick-btn" data-action="explain-text">
+              Explain Text
+            </button>
+            <button class="quick-btn" data-action="summarize">Summarize</button>
+            <button class="quick-btn" data-action="translate">Translate</button>
+            <button class="quick-btn" data-action="analyze-forms">
+              Analyze Forms
+            </button>
+            <button class="quick-btn" data-action="optimize-seo">
+              Optimize SEO
+            </button>
+            <button class="quick-btn" data-action="improve-accessibility">
+              Improve Accessibility
+            </button>
+            <button class="quick-btn" data-action="analyze-performance">
+              Analyze Performance
+            </button>
+          </div>
+        </div>
+
+        <div class="section">
+          <h3>Custom Request</h3>
+          <div class="form-group">
+            <textarea
+              id="custom-prompt"
+              placeholder="Describe what you want to do with this webpage..."
+            ></textarea>
+          </div>
+          <button class="btn" id="send-request">Send Request</button>
+        </div>
+
+        <div class="loading" id="loading">
+          <div class="spinner"></div>
+          <div>Processing your request...</div>
+        </div>
+      </div>
+
+      <!-- Settings Tab -->
+      <div class="tab-content" id="settings-tab">
+        <div class="section">
+          <h3>LLM Configuration</h3>
+          <div class="form-group">
+            <label for="provider">Provider</label>
+            <select id="provider">
+              <option value="openai">OpenAI</option>
+              <option value="anthropic">Anthropic</option>
+              <option value="custom">Custom API</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="api-key">API Key</label>
+            <input
+              type="password"
+              id="api-key"
+              placeholder="Enter your API key"
+            />
+          </div>
+          <div class="form-group">
+            <label for="model">Model</label>
+            <input
+              type="text"
+              id="model"
+              placeholder="e.g., gpt-4, claude-3-sonnet"
+            />
+          </div>
+          <div class="form-group" id="base-url-group" style="display: none">
+            <label for="base-url">Base URL</label>
+            <input
+              type="url"
+              id="base-url"
+              placeholder="https://api.example.com/v1"
+            />
+          </div>
+          <button class="btn" id="save-config">Save Configuration</button>
+        </div>
+
+        <div class="section">
+          <h3>About</h3>
+          <p style="font-size: 12px; color: #666; margin: 0">
+            This extension allows you to use LLMs to modify webpages. Select
+            text on any page and use the popup to send requests to your
+            configured LLM.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
