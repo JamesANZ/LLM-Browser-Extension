@@ -212,9 +212,102 @@ class PopupController {
         prompt =
           "Analyze this webpage for performance issues and suggest optimizations for faster loading and better user experience";
         break;
+      case "test-connection":
+        this.testConnection();
+        return;
     }
 
     this.sendRequest(prompt, "modify");
+  }
+
+  private async testConnection(): Promise<void> {
+    this.showLoading(true);
+    this.showStatus("Testing connection...", "info");
+
+    try {
+      // First, test basic background script communication
+      console.log("Testing basic background communication...");
+      const pingResponse = await chrome.runtime.sendMessage({
+        type: "PING",
+        data: "test",
+      });
+      console.log("Ping response:", pingResponse);
+
+      const [tab] = await chrome.tabs.query({
+        active: true,
+        currentWindow: true,
+      });
+      if (!tab.id) {
+        throw new Error("No active tab found");
+      }
+
+      // Check if we're on a Chrome internal page
+      if (tab.url && tab.url.startsWith("chrome://")) {
+        throw new Error(
+          "Cannot use extension on Chrome internal pages. Please navigate to a regular website (like google.com) and try again.",
+        );
+      }
+
+      // Get page context
+      console.log("Getting page context...");
+      let context;
+      try {
+        context = await chrome.tabs.sendMessage(tab.id, {
+          type: "PAGE_CONTEXT",
+        });
+        console.log("Page context received:", context);
+      } catch (error) {
+        console.log("Content script not found, injecting it...");
+        // Inject content script if it's not already there
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ["content.js"],
+        });
+        await chrome.scripting.insertCSS({
+          target: { tabId: tab.id },
+          files: ["content.css"],
+        });
+
+        // Wait a moment for the script to initialize
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        // Try again
+        context = await chrome.tabs.sendMessage(tab.id, {
+          type: "PAGE_CONTEXT",
+        });
+        console.log("Page context received after injection:", context);
+      }
+
+      // Send a simple test request
+      console.log("Sending LLM request...");
+      const response = await chrome.runtime.sendMessage({
+        type: "LLM_REQUEST",
+        data: {
+          prompt: "Say 'Hello, connection test successful!'",
+          context,
+          action: "explain",
+        },
+        tabId: tab.id,
+      });
+      console.log("LLM response:", response);
+
+      if (response.success) {
+        this.showStatus("✅ Connection test successful!", "success");
+      } else {
+        this.showStatus(
+          `❌ Connection test failed: ${response.error}`,
+          "error",
+        );
+      }
+    } catch (error) {
+      console.error("Connection test error:", error);
+      this.showStatus(
+        `❌ Connection test failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+        "error",
+      );
+    } finally {
+      this.showLoading(false);
+    }
   }
 
   private sendCustomRequest(): void {
@@ -253,10 +346,39 @@ class PopupController {
         throw new Error("No active tab found");
       }
 
+      // Check if we're on a Chrome internal page
+      if (tab.url && tab.url.startsWith("chrome://")) {
+        throw new Error(
+          "Cannot use extension on Chrome internal pages. Please navigate to a regular website (like google.com) and try again.",
+        );
+      }
+
       // Get page context
-      const context = await chrome.tabs.sendMessage(tab.id, {
-        type: "PAGE_CONTEXT",
-      });
+      let context;
+      try {
+        context = await chrome.tabs.sendMessage(tab.id, {
+          type: "PAGE_CONTEXT",
+        });
+      } catch (error) {
+        console.log("Content script not found, injecting it...");
+        // Inject content script if it's not already there
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ["content.js"],
+        });
+        await chrome.scripting.insertCSS({
+          target: { tabId: tab.id },
+          files: ["content.css"],
+        });
+
+        // Wait a moment for the script to initialize
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        // Try again
+        context = await chrome.tabs.sendMessage(tab.id, {
+          type: "PAGE_CONTEXT",
+        });
+      }
 
       // Send request to background script
       const response = await chrome.runtime.sendMessage({
@@ -347,6 +469,11 @@ class PopupController {
       await chrome.storage.sync.set({ llmConfig: config });
       this.config = config;
       this.showStatus("Configuration saved successfully!", "success");
+
+      // Close the popup after successful save
+      setTimeout(() => {
+        window.close();
+      }, 1500);
     } catch (error) {
       console.error("Error saving config:", error);
       this.showStatus("Error saving configuration", "error");

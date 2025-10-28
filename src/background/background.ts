@@ -9,18 +9,32 @@ class BackgroundService {
     this.init();
   }
 
-  private init(): void {
+  private async init(): Promise<void> {
     console.log("BackgroundService init started");
     this.setupMessageListener();
-    this.loadConfig();
+    await this.loadConfig();
     console.log("BackgroundService init completed");
   }
 
   private async loadConfig(): Promise<void> {
     try {
+      console.log("Background: Loading config from storage...");
       const result = await chrome.storage.sync.get(["llmConfig"]);
+      console.log("Background: Storage result:", result);
+
       if (result.llmConfig) {
+        console.log("Background: Config found, creating LLM service...");
+        console.log("Background: Config details:", {
+          provider: result.llmConfig.provider,
+          model: result.llmConfig.model,
+          hasApiKey: !!result.llmConfig.apiKey,
+          baseUrl: result.llmConfig.baseUrl,
+        });
+
         this.llmService = new LLMService(result.llmConfig);
+        console.log("Background: LLM service created successfully");
+      } else {
+        console.log("Background: No config found in storage");
       }
     } catch (error) {
       console.error("Error loading config in background:", error);
@@ -31,7 +45,11 @@ class BackgroundService {
     console.log("Setting up message listener");
     chrome.runtime.onMessage.addListener(
       (message: Message, sender, sendResponse) => {
-        console.log("Background received message:", message.type);
+        console.log("=== BACKGROUND RECEIVED MESSAGE ===");
+        console.log("Message type:", message.type);
+        console.log("Message data:", message.data);
+        console.log("Sender:", sender);
+
         this.handleMessage(message, sender, sendResponse);
         return true; // Keep message channel open for async response
       },
@@ -39,6 +57,7 @@ class BackgroundService {
 
     // Listen for config changes
     chrome.storage.onChanged.addListener((changes, namespace) => {
+      console.log("Storage changed:", { changes, namespace });
       if (namespace === "sync" && changes.llmConfig) {
         console.log("Config changed, reloading...");
         this.loadConfig();
@@ -53,6 +72,10 @@ class BackgroundService {
   ): Promise<void> {
     try {
       switch (message.type) {
+        case "PING":
+          console.log("Received PING, sending PONG");
+          sendResponse({ type: "PONG", data: "pong" });
+          break;
         case "LLM_REQUEST":
           await this.handleLLMRequest(message, sendResponse);
           break;
@@ -61,6 +84,7 @@ class BackgroundService {
           break;
         default:
           console.log("Unknown message type:", message.type);
+          sendResponse({ error: "Unknown message type" });
       }
     } catch (error) {
       console.error("Error handling message:", error);
@@ -108,11 +132,4 @@ class BackgroundService {
   }
 }
 
-// Initialize background service
-console.log("Initializing BackgroundService...");
-try {
-  new BackgroundService();
-  console.log("BackgroundService initialized successfully");
-} catch (error) {
-  console.error("Failed to initialize BackgroundService:", error);
-}
+new BackgroundService();

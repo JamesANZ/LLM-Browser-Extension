@@ -24,19 +24,28 @@ class ContentScript {
   }
 
   private setupMessageListener(): void {
+    console.log("Content script: Setting up message listener");
     chrome.runtime.onMessage.addListener(
       (message: Message, sender, sendResponse) => {
+        console.log("=== CONTENT SCRIPT RECEIVED MESSAGE ===");
+        console.log("Content script: Message type:", message.type);
+        console.log("Content script: Message data:", message.data);
+
         switch (message.type) {
           case "PAGE_CONTEXT":
+            console.log("Content script: Handling PAGE_CONTEXT request");
             this.getPageContext().then((context) => {
+              console.log("Content script: Sending context response:", context);
               sendResponse(context);
             });
             return true; // Keep message channel open for async response
           case "DOM_MODIFY":
+            console.log("Content script: Handling DOM_MODIFY request");
             this.applyModifications(message.data);
             sendResponse({ success: true });
             break;
           default:
+            console.log("Content script: Unknown message type:", message.type);
             break;
         }
       },
@@ -220,12 +229,15 @@ class ContentScript {
   }
 
   private async getPageContext(): Promise<WebpageContext> {
+    console.log("Content script: Starting getPageContext");
     const context = await ContextAnalyzer.analyzePage();
+    console.log("Content script: Context analyzed, adding selection");
 
     // Add selected text and element
     context.selectedText = ContextAnalyzer.getSelectedText();
     context.selectedElement = ContextAnalyzer.getSelectedElement();
 
+    console.log("Content script: getPageContext completed");
     return context;
   }
 

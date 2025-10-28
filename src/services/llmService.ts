@@ -36,11 +36,32 @@ export class LLMService {
 
   async processRequest(request: LLMRequest): Promise<LLMResponse> {
     try {
+      console.log(
+        "LLMService: Processing request for provider:",
+        this.config.provider,
+      );
+      console.log("LLMService: Using model:", this.config.model);
+      console.log(
+        "LLMService: Base URL:",
+        this.config.baseUrl || this.getDefaultBaseUrl(),
+      );
+
       const prompt = this.buildPrompt(request);
+      console.log("LLMService: Built prompt length:", prompt.length);
+
       const response = await this.sendRequest(prompt);
-      return this.parseResponse(response);
+      console.log("LLMService: Received response:", response);
+
+      const parsedResponse = this.parseResponse(response);
+      console.log("LLMService: Parsed response:", parsedResponse);
+
+      return parsedResponse;
     } catch (error) {
       console.error("LLM Service Error:", error);
+      if (error instanceof Error) {
+        console.error("Error details:", error.message);
+        console.error("Error stack:", error.stack);
+      }
       return {
         success: false,
         error:
@@ -51,6 +72,10 @@ export class LLMService {
 
   private buildPrompt(request: LLMRequest): string {
     const { prompt, context, action } = request;
+
+    // Smart HTML truncation to stay within token limits
+    const maxHtmlLength = 50000; // Roughly 12,500 tokens (4 chars per token)
+    const truncatedHtml = this.truncateHtml(context.html, maxHtmlLength);
 
     let systemPrompt = `You are a web development assistant that can modify web pages. 
 You will receive HTML content and user requests, and you should respond with specific DOM modifications in JSON format.
@@ -94,18 +119,43 @@ Current webpage context:
       systemPrompt += `\n\nPlease modify the webpage according to the user's request.`;
     }
 
-    return `${systemPrompt}\n\nUser request: ${prompt}\n\nHTML content:\n${context.html}`;
+    return `${systemPrompt}\n\nUser request: ${prompt}\n\nHTML content:\n${truncatedHtml}`;
   }
 
   private async sendRequest(prompt: string): Promise<any> {
     const requestBody = this.buildRequestBody(prompt);
+    const endpoint = this.getEndpoint();
 
-    const response: AxiosResponse = await this.client.post(
-      this.getEndpoint(),
-      requestBody,
+    console.log("LLMService: Sending request to:", endpoint);
+    console.log(
+      "LLMService: Request body:",
+      JSON.stringify(requestBody, null, 2),
     );
 
-    return response.data;
+    try {
+      const response: AxiosResponse = await this.client.post(
+        endpoint,
+        requestBody,
+      );
+      console.log("LLMService: Response status:", response.status);
+      console.log("LLMService: Response data:", response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error("LLMService: Request failed:", error);
+      if (error.response) {
+        console.error("LLMService: Response status:", error.response.status);
+        console.error("LLMService: Response data:", error.response.data);
+        throw new Error(
+          `API request failed: ${error.response.status} - ${JSON.stringify(error.response.data)}`,
+        );
+      } else if (error.request) {
+        console.error("LLMService: No response received:", error.request);
+        throw new Error("No response received from API");
+      } else {
+        console.error("LLMService: Request setup error:", error.message);
+        throw new Error(`Request setup error: ${error.message}`);
+      }
+    }
   }
 
   private buildRequestBody(prompt: string): any {
@@ -183,5 +233,25 @@ Current webpage context:
   updateConfig(newConfig: Partial<LLMConfig>): void {
     this.config = { ...this.config, ...newConfig };
     this.client = this.createClient();
+  }
+
+  private truncateHtml(html: string, maxLength: number): string {
+    if (html.length <= maxLength) {
+      return html;
+    }
+    // Try to find a good breaking point (end of a tag)
+    const truncated = html.substring(0, maxLength);
+    const lastTagEnd = truncated.lastIndexOf(">");
+
+    if (lastTagEnd > maxLength * 0.8) {
+      // If we found a tag end close to the limit, use it
+      return (
+        html.substring(0, lastTagEnd + 1) +
+        "\n\n[HTML content truncated due to size]"
+      );
+    } else {
+      // Otherwise, just truncate at the limit
+      return truncated + "\n\n[HTML content truncated due to size]";
+    }
   }
 }

@@ -103,6 +103,8 @@ export interface DOMModification {
 
 export interface Message {
   type:
+    | "PING"
+    | "PONG"
     | "LLM_REQUEST"
     | "LLM_RESPONSE"
     | "PAGE_CONTEXT"
